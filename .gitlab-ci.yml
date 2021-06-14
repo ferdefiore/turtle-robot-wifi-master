@@ -1,0 +1,70 @@
+image: python:2.7-slim-jessie
+
+stages:
+  - build 
+  - deploy
+
+build:
+  stage: build
+  script:
+    - build
+  artifacts:
+    paths:
+    - .pio/build/nodemcuv2/firmware.bin 
+  tags:
+    - docker
+
+deployDevelopment:
+  environment:
+    name: development
+  stage: deploy
+  script:
+   - deploy
+  dependencies: 
+    - build
+  tags:
+    - shell
+  only:
+    - /^dev-.*$/
+  except:
+    - branches
+
+deployProduction:
+  environment:
+    name: production
+  stage: deploy
+  script:
+    - deploy
+  dependencies:
+    - build
+  tags:
+    - shell
+  only:
+    - /^.*$/
+  except:
+    - branches
+
+# ---------------------------------------------------------------------------
+
+.auto_devops: &auto_devops |
+  # Auto DevOps variables and functions
+  function build() {
+    echo "Instalando dependencias..."
+    pip install -U platformio
+    apt update && apt install make
+    echo "Iniciando proceso de build..."
+    make clean
+    make
+  }
+
+  function deploy() {
+    local FILENAME="$(echo $CI_COMMIT_TAG | sed 's/.*-//').bin" # Remove prefix
+    echo "Se inicia deploy..."
+    echo "Guardando ${CI_ENVIRONMENT_NAME}/${FILENAME}"
+    mkdir -p /srv/firmware/${CI_ENVIRONMENT_NAME}
+    cp .pio/build/nodemcuv2/firmware.bin /srv/firmware/${CI_ENVIRONMENT_NAME}/${FILENAME}
+  }
+
+before_script:
+  - *auto_devops
+

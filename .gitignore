@@ -1,0 +1,9 @@
+.clang_complete
+.gcc-flags.json
+.pioenvs
+.piolibdeps
+.pio
+*.swo
+*.swp
+.travis.yml
+.vscode
